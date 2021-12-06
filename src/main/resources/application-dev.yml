@@ -1,0 +1,5 @@
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:32770/hero_vote
+    username: hero
+    password: hero

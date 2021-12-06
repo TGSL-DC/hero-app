@@ -1,0 +1,16 @@
+version: "3.3"
+
+services:
+  db:
+    image: postgres
+    ports:
+      - "32770:5432"
+    volumes:
+      - .dev/db/:/var/lib/postgresql/data/pgdata
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_DB=hero_vote
+      - POSTGRES_USER=hero
+      - POSTGRES_PASSWORD=hero
+
+

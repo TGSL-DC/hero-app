@@ -1,18 +1,6 @@
 micronaut:
   application:
     name: hero
-  security:
-    basic-auth:
-      enabled: true
-    intercept-url-map:
-      - pattern: /**/swagger/**
-        httpMethod: GET
-        access:
-          - isAnonymous()
-      - pattern: /**/swagger-ui/**
-        httpMethod: GET
-        access:
-          - isAnonymous()
   server:
     cors:
       enabled: true
@@ -23,8 +11,6 @@ micronaut:
             - OPTIONS
             - GET
             - POST
-            - PUT
-            - DELETE
   router:
     static-resources:
       swagger:
@@ -38,18 +24,11 @@ datasources:
     url: ${DATABASE_URL:`jdbc:postgresql://localhost:5432/hero_votes`}
     username: ${DATABASE_USER:`hero`}
     password: ${DATABASE_PASSWORD:`hero`}
-#r2dbc:
-#  datasources:
-#    default:
-#      url: r2dbc:postgresql://localhost:5432/hero_votes
-#      username: hero
-#      password: hero
 jpa:
   default:
     entity-scan:
       packages:
-        - 'dc.vilnius.hero.domain'
-        - 'dc.vilnius.vote.domain'
+        - 'dc.vilnius.kudos.domain'
     properties:
       hibernate:
         bytecode:
@@ -64,8 +43,3 @@ supabase:
   url: ${SUPABASE_URL:`n\a`}
   api-key: ${SUPABASE_API_KEY:`n\a`}
   token-endpoint: ${SUPABASE_TOKEN_URL:`/auth/v1/token?grant_type=password`}
-mattermost:
-  url: ${MATTERMOST_URL:`n\a`}
-  path: '/api/v4'
-  token: ${MATTERMOST_TOKEN:`n\a`}
-  bot-name: ${MATTERMOST_BOT_NAME:`n\a`}

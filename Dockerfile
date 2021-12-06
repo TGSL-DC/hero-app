@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=openjdk:15.0.2-slim
+ARG BASE_IMAGE=adoptopenjdk:16-jre-hotspot
 FROM ${BASE_IMAGE}
 
 COPY build/libs/*-all.jar ./app.jar
