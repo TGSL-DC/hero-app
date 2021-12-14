@@ -12,5 +12,3 @@ services:
       - POSTGRES_DB=hero_vote
       - POSTGRES_USER=hero
       - POSTGRES_PASSWORD=hero
-
-

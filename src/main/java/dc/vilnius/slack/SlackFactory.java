@@ -5,14 +5,16 @@ import static dc.vilnius.slack.domain.HeroesOfTheMonthDateUtil.isAllowedToReveal
 
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
-import dc.vilnius.kudos.domain.KudosFacade;
-import dc.vilnius.kudos.dto.GiveKudos;
+import dc.vilnius.slack.domain.CommandParser;
 import dc.vilnius.slack.domain.MessageGenerator;
-import dc.vilnius.slack.domain.SlackMessageFacade;
+import dc.vilnius.tasks.GetKudosOfTheMonthEmitter;
+import dc.vilnius.tasks.GetKudosOfTheYearEmitter;
+import dc.vilnius.tasks.SubmitKudosEmitter;
 import io.micronaut.context.annotation.Factory;
+import jakarta.inject.Singleton;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Singleton;
 
 @Factory
 public class SlackFactory {
@@ -23,24 +25,22 @@ public class SlackFactory {
   }
 
   @Singleton
-  public App createApp(AppConfig appConfig, KudosFacade kudosFacade) {
+  public App createApp(AppConfig appConfig, GetKudosOfTheMonthEmitter getKudosOfTheMonthEmitter,
+      GetKudosOfTheYearEmitter getKudosOfTheYearEmitter, SubmitKudosEmitter submitKudosEmitter) {
     App app = new App(appConfig);
-    var slackMessageFacade = new SlackMessageFacade(kudosFacade, appConfig);
 
-    app.command("/hero-ping", (req, ctx) -> {
-      return ctx.ack("pong");
-    });
+    app.command("/hero-ping", (req, ctx) -> ctx.ack("pong"));
 
     app.command("/hero-vote", (req, ctx) -> {
       var commandArgText = req.getPayload().getText();
       var channelId = req.getPayload().getChannelId();
       var userId = req.getPayload().getUserId();
-      var parsedMessage = slackMessageFacade.parseMessage(commandArgText);
+      var parsedMessage = CommandParser.parse(commandArgText);
       if (parsedMessage.users().contains(userId)) {
         return ctx.ack("Really? No cheating mate!");
       }
-      var kudos = new GiveKudos(channelId, parsedMessage.users(), parsedMessage.message());
-      slackMessageFacade.handleHeroVote(kudos);
+
+      submitKudosEmitter.publish(channelId, parsedMessage.users(), parsedMessage.message());
       var successMessages = parsedMessage.users().stream()
           .map(MessageGenerator::randomSuccessMessage).collect(
               Collectors.joining(";"));
@@ -51,15 +51,23 @@ public class SlackFactory {
     app.command("/heroes-of-the-month", (req, ctx) -> {
       var channelId = req.getPayload().getChannelId();
       var userId = req.getPayload().getUserId();
-
-      var currentDate = LocalDate.now();
-      if (isAllowedToRevealHeroesLeaderboard(currentDate)) {
-        slackMessageFacade.handleHeroOfTheMonth(channelId, userId);
-        return ctx.ack("Working on it!");
+      var commandArgText = req.getPayload().getText();
+      var date = Optional.ofNullable(commandArgText)
+          .map(LocalDate::parse).orElse(LocalDate.now());
+      if (isAllowedToRevealHeroesLeaderboard(date)) {
+        getKudosOfTheMonthEmitter.publish(channelId, userId, date);
+        return ctx.ack("Working on it! Loading heroes of the month...");
       } else {
-        return ctx.ack("It's too soon to reveal this month heroes! Available from: "
-            + heroesLeaderBoardAvailableFrom(currentDate));
+        return ctx.ack("It's too early to reveal heroes! Available from: "
+            + heroesLeaderBoardAvailableFrom(date));
       }
+    });
+
+    app.command("/heroes-of-the-year", (req, ctx) -> {
+      var channelId = req.getPayload().getChannelId();
+      var userId = req.getPayload().getUserId();
+      getKudosOfTheYearEmitter.publish(channelId, userId);
+      return ctx.ack("Working on it! Loading heroes of the year...");
     });
 
     return app;

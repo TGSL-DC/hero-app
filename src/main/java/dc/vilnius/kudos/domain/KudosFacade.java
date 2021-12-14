@@ -1,17 +1,17 @@
 package dc.vilnius.kudos.domain;
 
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 import dc.vilnius.kudos.dto.GiveKudos;
 import dc.vilnius.kudos.dto.KudosDto;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class KudosFacade {
@@ -40,12 +40,21 @@ public class KudosFacade {
         .collect(toList());
   }
 
-  public List<KudosDto> findAllCurrentMonthKudosBy(String channelId) {
-    var currentTime = LocalDate.now().atStartOfDay();
+  public List<KudosDto> findAllGivenMonthKudosBy(String channelId, LocalDate date) {
+    var currentTime = date.atStartOfDay();
     var firstDayOfMonth = currentTime.with(TemporalAdjusters.firstDayOfMonth());
     var lastDayOfMonth = currentTime.with(TemporalAdjusters.lastDayOfMonth());
     return kudosRepository.findByChannelAndCreateDateBetweenOrderByUsername(channelId,
-            firstDayOfMonth, lastDayOfMonth).stream().map(KudosMapper::entity2Dto).collect(toSet())
-        .stream().collect(toList());
+            firstDayOfMonth, lastDayOfMonth).stream().map(KudosMapper::entity2Dto).collect(toList());
+  }
+
+  public List<KudosDto> findAllGivenYearKudosBy(String channelId, LocalDate date) {
+    var currentTime = date.atStartOfDay();
+    var firstDayOfMonth = currentTime.withMonth(Month.JANUARY.getValue())
+        .with(TemporalAdjusters.firstDayOfMonth());
+    var lastDayOfMonth = currentTime.withMonth(Month.DECEMBER.getValue())
+        .with(TemporalAdjusters.lastDayOfMonth());
+    return kudosRepository.findByChannelAndCreateDateBetweenOrderByUsername(channelId,
+        firstDayOfMonth, lastDayOfMonth).stream().map(KudosMapper::entity2Dto).collect(toList());
   }
 }

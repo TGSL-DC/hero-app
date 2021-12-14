@@ -80,20 +80,8 @@ public class SlackMessageFacade {
     }
   }
 
-  public SlackMessage parseMessage(String commandArgText) {
-    return CommandParser.parse(commandArgText);
-  }
-
-  public void handleHeroVote(GiveKudos giveKudos) {
-    kudosFacade.submit(giveKudos);
-
-    giveKudos.usernames()
-        .forEach(user -> scheduleMessageAtTheEndOfTheMonth(user, giveKudos.message()));
-  }
-
-  public void handleHeroOfTheMonth(String channelId, String requestedBy) {
-    var sortedHeroesByMessageSize = sortedCurrentMonthHeroesByMessageSize(channelId);
-    var blocks = buildBlocks(sortedHeroesByMessageSize);
+  private void buildAndPostHeroesLeaderboard(String channelId, String requestedBy, List<LayoutBlock> blocks, Map<String, List<KudosDto>> sortedHeroesByMessageSize) {
+    blocks.addAll(buildBlocks(sortedHeroesByMessageSize));
     blocks.addAll(requestedByMessage(requestedBy));
     ChatPostMessageRequest message = ChatPostMessageRequest.builder()
         .channel(channelId)
@@ -113,10 +101,38 @@ public class SlackMessageFacade {
     }
   }
 
-  private Map<String, List<KudosDto>> sortedCurrentMonthHeroesByMessageSize(String channelId) {
-    var mapByHeroes = kudosFacade.findAllCurrentMonthKudosBy(channelId)
-        .stream()
+  public void handleHeroVote(GiveKudos giveKudos) {
+    kudosFacade.submit(giveKudos);
+
+    giveKudos.usernames()
+        .forEach(user -> scheduleMessageAtTheEndOfTheMonth(user, giveKudos.message()));
+  }
+
+  public void handleHeroOfTheMonth(String channelId, String requestedBy, LocalDate date) {
+    var heroes = kudosFacade.findAllGivenMonthKudosBy(channelId, date);
+    var sortedHeroesByMessageSize = sortByHeroes(heroes);
+    var blocks = new ArrayList<LayoutBlock>();
+    blocks.add(HeaderBlock.builder().text(givenMonthHeroHeader(date)).build());
+    buildAndPostHeroesLeaderboard(channelId, requestedBy, blocks, sortedHeroesByMessageSize);
+  }
+
+  public void handleHeroOfTheYear(String channelId, String requestedBy) {
+    var date = LocalDate.now();
+    var heroes = kudosFacade.findAllGivenYearKudosBy(channelId, date);
+    var sortedHeroesByMessageSize = sortByHeroes(heroes);
+    var blocks = new ArrayList<LayoutBlock>();
+    var currentYearHeroHeader = PlainTextObject.builder()
+        .text(date.getYear() + " heroes of the year \uD83C\uDFC6 \uD83C\uDFC6 \uD83C\uDFC6")
+        .emoji(true)
+        .build();
+    blocks.add(HeaderBlock.builder().text(currentYearHeroHeader).build());
+    buildAndPostHeroesLeaderboard(channelId, requestedBy, blocks, sortedHeroesByMessageSize);
+  }
+
+  private Map<String, List<KudosDto>> sortByHeroes(List<KudosDto> kudos) {
+    var mapByHeroes = kudos.stream()
         .collect(groupingBy(KudosDto::username, toList()));
+
     return mapByHeroes.entrySet()
         .stream()
         .sorted((e1, e2) -> Integer.compare(e2.getValue().size(), e1.getValue().size()))
@@ -143,7 +159,6 @@ public class SlackMessageFacade {
 
   private List<LayoutBlock> buildBlocks(Map<String, List<KudosDto>> groupedHeroes) {
     var blocks = new ArrayList<LayoutBlock>();
-    blocks.add(HeaderBlock.builder().text(currentMonthHeroHeader()).build());
     blocks.add(DividerBlock.builder().build());
     blocks.addAll(addCurrentMonthLeaderboard(groupedHeroes));
     blocks.add(DividerBlock.builder().build());
@@ -187,8 +202,8 @@ public class SlackMessageFacade {
     return blocks;
   }
 
-  private PlainTextObject currentMonthHeroHeader() {
-    var currentMonth = LocalDate.now().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+  private PlainTextObject givenMonthHeroHeader(LocalDate date) {
+    var currentMonth = date.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
     return PlainTextObject.builder()
         .text(currentMonth + " heroes of the month \uD83E\uDDB8")
         .emoji(true)

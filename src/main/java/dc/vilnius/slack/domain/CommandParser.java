@@ -11,7 +11,7 @@ public class CommandParser {
 
   private CommandParser() {}
 
-  static SlackMessage parse(String message) {
+  public static SlackMessage parse(String message) {
     var usersMatcher = USER_PATTERN.matcher(message);
     var users = new ArrayList<String>();
     while(usersMatcher.find()) {

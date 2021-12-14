@@ -10,8 +10,9 @@ public class MessageGenerator {
             "Thanks for voting 🥰 <@%s> will be really happy 🥳🥳",
             "Oh Yeah! 🥳 <@%s> is Rockstar this month 🤩",
             "<@%s> will be really happy 🥰",
-            "So <@%s> is your hero this month, really? 🤔🤔",
-            "<@%s> will be really happy 🥳🥳"
+            "<@%s> will be really happy 🥳🥳",
+            "<@%s> will be really happy 😊",
+            "<@%s> will be really happy 🤘"
     );
 
     public static String randomSuccessMessage(String username) {

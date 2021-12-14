@@ -3,7 +3,7 @@ micronaut:
     enabled: false
 datasources:
   default:
-    url: jdbc:tc:postgresql://localhost/test
+    url: jdbc:tc:postgresql:14.1:///test
     driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
     username: test
     password: test
